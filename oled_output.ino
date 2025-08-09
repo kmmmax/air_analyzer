@@ -4,8 +4,14 @@ void oled_rain_output() {
   oled.setCursor(7, 0);
   oled.print(now_date);
 
-  oled.setCursorXY(35, 35);
-  oled.print("Rain: 80%");
+  oled.setCursorXY(35, 28);
+  oled.print("mm.Hg: ");
+  oled.print(air_bme_pressure * 0.0075f, 0);
+
+  oled.setCursorXY(37, 42);
+  oled.print("Rain: ");
+  oled.print(estimateRain());
+  oled.print("%");
 
   oled.fastLineH(16, 0, 127);
   oled.fastLineH(63, 0, 127);

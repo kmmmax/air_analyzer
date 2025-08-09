@@ -22,7 +22,7 @@
 
 #define OLED_ADDRESS 0x3c
 
-#define TMR1_INTERVAL_MS 10000
+#define TMR1_INTERVAL_MS 60000
 #define TMR2_INTERVAL_MS 300000
 
 #define NEED_SET_RTC false
@@ -40,6 +40,7 @@
 #define PM2_YELLOW_MAX 150
 
 #define RAIN_MEASURES 12
+#define STATION_ALT 125
 
 
 //Создаем объекты устройств
@@ -98,7 +99,7 @@ void setup() {
   digitalWrite(YELLOW_LED, LOW);
   digitalWrite(GREEN_LED, LOW);
 
-  //Подготавливаем пин кнпоки и включаем подтяжку к логической единице
+  //Подготавливаем пин кнопки и включаем подтяжку к логической единице
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   //Подготавливаем пины для датчика пыли и подаем логический ноль на пин датчика
@@ -111,6 +112,9 @@ void setup() {
 
   //Стартуем последовательный порт обмена
   Serial.begin(SERIAL_PORT_SPEED);
+  while(!Serial) {
+    delay(100);
+  }
   Serial.println("###");
   Serial.println("### Air Analyzer");
 
@@ -124,28 +128,24 @@ void setup() {
   oled.init();
   oled.clear();
   oled.home();
-  oled.print("Air Analyzer Loading:");
+  oled.print("Device Loading:");
 
   //Подключаем модуль точного времени
-  oled.setCursor(0, 2);
+  oled.setCursor(2, 2);
   oled.print("- RTC Watch ...");
   Serial.print("### RTC Watch wakeUp ...");
-  while (rtc_watch.begin(&Wire)) {
-    delay(1000);
-    Serial.print(".");
-  }
-
+  rtc_watch.begin(&Wire);
+  delay(100);
   now_date = rtc_watch.gettime("d M Y | H:i");
   Serial.print(" OK! ");
   Serial.println((String) "(" + now_date + ")");
   oled.print(" OK!");
 
   //Подключаем датчик CO2
-  oled.setCursor(0, 3);
+  oled.setCursor(2, 3);
   oled.print("- CO2 Sensor ...");
-  co2_sensor.begin(Wire, SCD41_I2C_ADDR_62);
-
   Serial.print("### CO2 Sensor wakeUp ...");
+  co2_sensor.begin(Wire, SCD41_I2C_ADDR_62);
   delay(100);
   while (co2_sensor.wakeUp() != 0) {
     delay(1000);
@@ -197,7 +197,7 @@ void setup() {
   oled.print(" OK!");
 
   //Подключаем датчик AHT (температура и влажность)
-  oled.setCursor(0, 4);
+  oled.setCursor(2, 4);
   oled.print("- AHT Sensor ...");
   Serial.print("### AHT Sensor ...");
   delay(100);
@@ -209,7 +209,7 @@ void setup() {
   oled.print(" OK!");
 
   //Подключаем датчик атмосферного давления
-  oled.setCursor(0, 5);
+  oled.setCursor(2, 5);
   oled.print("- BME Sensor ...");
   Serial.print("### BME sensor wakeUp ...");
   delay(100);
@@ -269,7 +269,7 @@ void loop() {
   }
 
   //Программный таймер для обновления данных сенсоров
-  if ((cur_millis - tmr1_prev_millis >= TMR1_INTERVAL_MS) || tmr1_first) {
+  if (((cur_millis - tmr1_prev_millis >= TMR1_INTERVAL_MS) || tmr1_first) && !button_pressed) {
     tmr1_prev_millis = cur_millis;
     if (tmr1_first) {
       tmr1_first = false;
@@ -323,7 +323,6 @@ void loop() {
 
   if ( !digitalRead(BUTTON_PIN) && !button_pressed) {
     button_pressed = true;
-    Serial.println("### Button pressed!");
     oled_rain_output();
   }
 

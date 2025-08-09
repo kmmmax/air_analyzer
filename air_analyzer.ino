@@ -21,6 +21,7 @@
 #define I2C_SPEED 10000
 
 #define OLED_ADDRESS 0x3c
+#define OLED_TIMEOUT_MS 180000
 
 #define TMR1_INTERVAL_MS 60000
 #define TMR2_INTERVAL_MS 300000
@@ -40,7 +41,7 @@
 #define PM2_YELLOW_MAX 150
 
 #define RAIN_MEASURES 12
-#define STATION_ALT 125
+#define STATION_ALT_METERS 125
 
 
 //Создаем объекты устройств
@@ -52,10 +53,12 @@ BME280I2C bme280;                                              //Датчик а
 
 
 //Глобальные переменные проекта
+bool oled_active = true;
 uint32_t cur_millis = 0;
 
 bool button_pressed = false;
 
+uint32_t last_action = 0;
 uint32_t tmr1_prev_millis = 0;
 uint32_t tmr2_prev_millis = 0;
 
@@ -112,7 +115,7 @@ void setup() {
 
   //Стартуем последовательный порт обмена
   Serial.begin(SERIAL_PORT_SPEED);
-  while(!Serial) {
+  while (!Serial) {
     delay(100);
   }
   Serial.println("###");
@@ -316,14 +319,30 @@ void loop() {
     oled_values_output();
   }
 
-  if ( digitalRead(BUTTON_PIN) && button_pressed) {
+  //Таймаут для отключения OLED
+  if ((millis() - last_action >= OLED_TIMEOUT_MS) && oled_active) {
+    Serial.println("### Activity timeout. Set OLED off...");
+    oled.setPower(false);
+    oled_active = false;
+  }
+
+  //Кнопка отпущена
+  if (digitalRead(BUTTON_PIN) && button_pressed) {
     button_pressed = false;
     oled_values_output();
   }
 
-  if ( !digitalRead(BUTTON_PIN) && !button_pressed) {
+  //Кнопка нажата
+  if (!digitalRead(BUTTON_PIN) && !button_pressed) {
     button_pressed = true;
-    oled_rain_output();
+    last_action = millis();
+    if (oled_active) {
+      oled_rain_output();
+    } else {
+      Serial.println("### Activity detected. Set OLED on...");
+      oled_active = true;
+      oled.setPower(true);
+      oled_values_output();
+    }
   }
-
 }

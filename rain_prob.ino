@@ -6,7 +6,7 @@ int estimateRain() {
   }
 
   float avgPressure = pressureSum / RAIN_MEASURES;
-  float avgSeaPressure = avgPressure + (STATION_ALT * 12.01);
+  float avgSeaPressure = avgPressure + (STATION_ALT_METERS * 12.01);
 
   float deltaPressure = rain_measures[RAIN_MEASURES - 1] - rain_measures[0];
 

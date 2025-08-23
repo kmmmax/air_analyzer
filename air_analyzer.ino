@@ -44,6 +44,8 @@
 #define RAIN_MEASURES 12
 #define STATION_ALT_METERS 125
 
+#define TEMPERATURE_OFFSET -2.5f
+
 
 //Создаем объекты устройств
 LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_SIZE_X, LCD_SIZE_Y);  //LCD экран
@@ -62,7 +64,7 @@ uint32_t tmr3_prev_millis = 0;
 
 bool co2_dataReady = false;
 int16_t co2_dataStatus = 0;
-uint16_t air_scd_c02 = 0;
+uint16_t air_scd_co2 = 0;
 float air_scd_temperature = 0.0;
 float air_scd_humidity = 0.0;
 
@@ -87,8 +89,8 @@ bool red_banner_co2 = false;
 bool yellow_banner_pm2 = false;
 bool red_banner_pm2 = false;
 
-uint8_t uparrow[8]  = {0x4,0xe,0x15,0x4,0x4,0x4,0x4};
-uint8_t downarrow[8]  = {0x4,0x4,0x4,0x4,0x15,0xe,0x4};
+uint8_t uparrow[8]  = {0x4,0xe,0x15,0x4,0x4,0x4,0x0};
+uint8_t downarrow[8]  = {0x0,0x4,0x4,0x4,0x15,0xe,0x4};
 
 void setup() {
 
@@ -253,8 +255,6 @@ void setup() {
   lcd.clear();
   lcd_datetime_output();
   lcd_template_output();
-
-  Serial.println("### UNIX_TIME; TEMPERATURE; HUMIDITY; CO2; PM2; PRESSURE_PA; PRESSURE_HG");
 }
 
 
@@ -306,26 +306,28 @@ void loop() {
       tmr1_first = false;
     }
 
-    //Получаем данные температуры и влажности
+    //Получаем данные температуры и влажности и делаем поправку на погрешность датчика
     if (!aht10.getEvent(&air_aht_humidity, &air_aht_temperature)) {
       Serial.println("### Wrong data from AHT sensor !!!");
       air_aht_temperature.temperature = 0.0;
       air_aht_humidity.relative_humidity = 0.0;
+    } else {
+      air_aht_temperature.temperature += TEMPERATURE_OFFSET;
     }
 
     //Получаем данные CO2
     co2_dataStatus = co2_sensor.getDataReadyStatus(co2_dataReady);
     if (co2_dataStatus != 0 or !co2_dataReady) {
       Serial.println("### Wrong readyStatus from CO2 sensor !!!");
-      air_scd_c02 = 8888;
+      air_scd_co2 = 8888;
       air_scd_temperature = 0;
       air_scd_humidity = 0;
     } else {
       delay(100);
-      co2_dataStatus = co2_sensor.readMeasurement(air_scd_c02, air_scd_temperature, air_scd_humidity);
+      co2_dataStatus = co2_sensor.readMeasurement(air_scd_co2, air_scd_temperature, air_scd_humidity);
       if (co2_dataStatus != 0) {
         Serial.println("### Wrong data from CO2 sensor !!!");
-        air_scd_c02 = 9999;
+        air_scd_co2 = 9999;
         air_scd_temperature = 0;
         air_scd_humidity = 0;
       }

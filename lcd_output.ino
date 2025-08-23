@@ -64,7 +64,7 @@ void lcd_values_output() {
   lcd.setCursor(4, 2);
   lcd.print("      ");
   lcd.setCursor(4, 2);
-  lcd.print(air_scd_c02);
+  lcd.print(air_scd_co2);
   if (yellow_banner_co2 || red_banner_co2) {
     lcd.print("!");
   }

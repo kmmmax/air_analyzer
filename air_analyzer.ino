@@ -26,6 +26,8 @@
 
 #define TMR1_INTERVAL_MS 15000
 #define TMR2_INTERVAL_MS 300000
+#define TMR3_INTERVAL_MS 1000
+
 
 #define TEMP_GREEN_MIN 18
 #define TEMP_GREEN_MAX 30
@@ -44,24 +46,19 @@
 
 
 //Создаем объекты устройств
-LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_SIZE_X,LCD_SIZE_Y);      //LCD экран
-iarduino_RTC rtc_watch(RTC_DS3231);                            //Часы реального времени
-SensirionI2cScd4x co2_sensor;                                  //Датчик CO2
-Adafruit_AHTX0 aht10;                                          //Датчик температуры и влажности
-BME280I2C bme280;                                              //Датчик атмосферного давления
+LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_SIZE_X, LCD_SIZE_Y);  //LCD экран
+iarduino_RTC rtc_watch(RTC_DS3231);                          //Часы реального времени
+SensirionI2cScd4x co2_sensor;                                //Датчик CO2
+Adafruit_AHTX0 aht10;                                        //Датчик температуры и влажности
+BME280I2C bme280;                                            //Датчик атмосферного давления
 
 
 //Глобальные переменные проекта
-bool oled_active = true;
 uint32_t cur_millis = 0;
 
-bool button_pressed = false;
-
-uint32_t last_action = 0;
 uint32_t tmr1_prev_millis = 0;
 uint32_t tmr2_prev_millis = 0;
-
-String now_date = "";
+uint32_t tmr3_prev_millis = 0;
 
 bool co2_dataReady = false;
 int16_t co2_dataStatus = 0;
@@ -82,7 +79,6 @@ sensors_event_t air_aht_temperature;
 sensors_event_t air_aht_humidity;
 
 bool yellow_banner_temperature = false;
-
 bool red_banner_humidity = false;
 
 bool yellow_banner_co2 = false;
@@ -141,10 +137,9 @@ void setup() {
   Serial.print("### RTC Watch wakeUp ...");
   rtc_watch.begin(&Wire);
   delay(100);
-  now_date = rtc_watch.gettime("d M Y | H:i");
-  Serial.print(" OK! ");
-  Serial.println((String) "(" + now_date + ")");
-  lcd.print("OK!");
+  rtc_watch.gettime("d M Y | H:i");
+  Serial.print(" OK!");
+  lcd.print("Ok!");
   delay(1000);
 
   //Подключаем датчик CO2
@@ -201,7 +196,7 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" OK!");
-  lcd.print("OK!");
+  lcd.print("Ok!");
   delay(1000);
 
   //Подключаем датчик AHT (температура и влажность)
@@ -216,7 +211,7 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" OK!");
-  lcd.print("OK!");
+  lcd.print("Ok!");
   delay(1000);
 
   //Подключаем датчик атмосферного давления
@@ -231,7 +226,7 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" OK!");
-  lcd.print("OK!");
+  lcd.print("Ok!");
   delay(1000);
 
   lcd.setCursor(0, 2);
@@ -252,6 +247,8 @@ void setup() {
   delay(1000);
 
   lcd.clear();
+  lcd_datetime_output();
+  lcd_template_output();
 
   Serial.println("### UNIX_TIME; TEMPERATURE; HUMIDITY; CO2; PM2; PRESSURE_PA; PRESSURE_HG");
 }
@@ -260,9 +257,19 @@ void setup() {
 void loop() {
   static bool tmr1_first = true;
   static bool tmr2_first = true;
+  static bool tmr3_first = true;
 
+  delay(1);
   cur_millis = millis();
-  delay(10);
+
+  //Программный таймер для обновления данных часов
+  if ((cur_millis - tmr3_prev_millis >= TMR3_INTERVAL_MS) || tmr3_first) {
+    tmr3_prev_millis = cur_millis;
+    if (tmr3_first) {
+      tmr3_first = false;
+    }
+    lcd_datetime_output();
+  }
 
   //Программный таймер для обновления данных атмосферного давления
   if ((cur_millis - tmr2_prev_millis >= TMR2_INTERVAL_MS) || tmr2_first) {
@@ -289,7 +296,7 @@ void loop() {
   }
 
   //Программный таймер для обновления данных сенсоров
-  if (((cur_millis - tmr1_prev_millis >= TMR1_INTERVAL_MS) || tmr1_first) && !button_pressed) {
+  if ((cur_millis - tmr1_prev_millis >= TMR1_INTERVAL_MS) || tmr1_first) {
     tmr1_prev_millis = cur_millis;
     if (tmr1_first) {
       tmr1_first = false;
@@ -323,9 +330,6 @@ void loop() {
     //Получаем данные о пыли
     air_pm2 = getDustDensity();
 
-    //Получаем текущее время с часов
-    now_date = rtc_watch.gettime("d M Y | H:i");
-
     //Выводим обновленные данные в последовательный порт
     serial_output();
 
@@ -335,5 +339,4 @@ void loop() {
     //Выводим обновленные данные на LCD-экран
     lcd_values_output();
   }
-
 }

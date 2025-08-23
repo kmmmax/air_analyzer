@@ -1,6 +1,6 @@
 //Подключение библиотек
 #include <Wire.h>
-#include <GyverOLED.h>
+#include <LiquidCrystal_I2C.h>
 #include <iarduino_RTC.h>
 #include <SensirionI2cScd4x.h>
 #include <Adafruit_AHTX0.h>
@@ -18,15 +18,14 @@
 #define PM2_AOUT_PIN A0
 
 #define SERIAL_PORT_SPEED 9600
-#define I2C_SPEED 10000
+#define I2C_SPEED 1000
 
-#define OLED_ADDRESS 0x3c
-#define OLED_TIMEOUT_MS 180000
+#define LCD_ADDRESS 0x27
+#define LCD_SIZE_X 20
+#define LCD_SIZE_Y 4
 
-#define TMR1_INTERVAL_MS 60000
+#define TMR1_INTERVAL_MS 15000
 #define TMR2_INTERVAL_MS 300000
-
-#define NEED_SET_RTC false
 
 #define TEMP_GREEN_MIN 18
 #define TEMP_GREEN_MAX 30
@@ -45,7 +44,7 @@
 
 
 //Создаем объекты устройств
-GyverOLED<SSD1306_128x64, OLED_NO_BUFFER> oled(OLED_ADDRESS);  //OLED экран
+LiquidCrystal_I2C lcd(LCD_ADDRESS,LCD_SIZE_X,LCD_SIZE_Y);      //LCD экран
 iarduino_RTC rtc_watch(RTC_DS3231);                            //Часы реального времени
 SensirionI2cScd4x co2_sensor;                                  //Датчик CO2
 Adafruit_AHTX0 aht10;                                          //Датчик температуры и влажности
@@ -74,7 +73,8 @@ uint16_t air_pm2 = 0;
 
 float air_bme_temperature = 0;
 float air_bme_humidity = 0;
-float air_bme_pressure = 0;
+float air_bme_pressure_pa = 0;
+uint16_t air_bme_pressure_hg = 0;
 
 uint32_t rain_measures[RAIN_MEASURES];
 
@@ -115,9 +115,6 @@ void setup() {
 
   //Стартуем последовательный порт обмена
   Serial.begin(SERIAL_PORT_SPEED);
-  while (!Serial) {
-    delay(100);
-  }
   Serial.println("###");
   Serial.println("### Air Analyzer");
 
@@ -127,26 +124,34 @@ void setup() {
   Wire.setClock(I2C_SPEED);
   delay(100);
 
-  //Инициализируем OLED-экран и выводим первую строчку
-  oled.init();
-  oled.clear();
-  oled.home();
-  oled.print("Device Loading:");
+  //Инициализируем LCD-экран и выводим первую строчку
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  lcd.home();
+  lcd.print("Device Loading:");
+  lcd.cursor_off();
+  lcd.blink_on();
 
   //Подключаем модуль точного времени
-  oled.setCursor(2, 2);
-  oled.print("- RTC Watch ...");
+  lcd.setCursor(0, 2);
+  lcd.print("                    ");
+  lcd.setCursor(1, 2);
+  lcd.print("RTC Watch: ");
   Serial.print("### RTC Watch wakeUp ...");
   rtc_watch.begin(&Wire);
   delay(100);
   now_date = rtc_watch.gettime("d M Y | H:i");
   Serial.print(" OK! ");
   Serial.println((String) "(" + now_date + ")");
-  oled.print(" OK!");
+  lcd.print("OK!");
+  delay(1000);
 
   //Подключаем датчик CO2
-  oled.setCursor(2, 3);
-  oled.print("- CO2 Sensor ...");
+  lcd.setCursor(0, 2);
+  lcd.print("                    ");
+  lcd.setCursor(1, 2);
+  lcd.print("CO2 Sensor: ");
   Serial.print("### CO2 Sensor wakeUp ...");
   co2_sensor.begin(Wire, SCD41_I2C_ADDR_62);
   delay(100);
@@ -196,12 +201,14 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" OK!");
-
-  oled.print(" OK!");
+  lcd.print("OK!");
+  delay(1000);
 
   //Подключаем датчик AHT (температура и влажность)
-  oled.setCursor(2, 4);
-  oled.print("- AHT Sensor ...");
+  lcd.setCursor(0, 2);
+  lcd.print("                    ");
+  lcd.setCursor(1, 2);
+  lcd.print("AHT Sensor: ");
   Serial.print("### AHT Sensor ...");
   delay(100);
   while (!aht10.begin()) {
@@ -209,11 +216,14 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" OK!");
-  oled.print(" OK!");
+  lcd.print("OK!");
+  delay(1000);
 
   //Подключаем датчик атмосферного давления
-  oled.setCursor(2, 5);
-  oled.print("- BME Sensor ...");
+  lcd.setCursor(0, 2);
+  lcd.print("                    ");
+  lcd.setCursor(1, 2);
+  lcd.print("BME Sensor: ");
   Serial.print("### BME sensor wakeUp ...");
   delay(100);
   while (!bme280.begin()) {
@@ -221,24 +231,29 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" OK!");
-  oled.print("OK!");
+  lcd.print("OK!");
+  delay(1000);
+
+  lcd.setCursor(0, 2);
+  lcd.print("                    ");
+  lcd.setCursor(1, 2);
+  lcd.print("Device ready!");
+  lcd.cursor_off();
+  lcd.blink_off();
 
   //Посветим светофором
   red_led_on();
-  delay(500);
+  delay(1000);
   yellow_led_on();
-  delay(500);
+  delay(1000);
   green_led_on();
-  delay(500);
+  delay(1000);
   all_leds_off();
+  delay(1000);
 
-  //Заканчиваем подготовку
-  oled.setCursor(0, 7);
-  oled.print("Load Complete!");
-  delay(2000);
-  oled.clear();
+  lcd.clear();
 
-  Serial.println("### UNIX_TIME; TEMPERATURE; HUMIDITY; CO2; PM2; PRESSURE");
+  Serial.println("### UNIX_TIME; TEMPERATURE; HUMIDITY; CO2; PM2; PRESSURE_PA; PRESSURE_HG");
 }
 
 
@@ -255,19 +270,21 @@ void loop() {
 
     BME280::TempUnit tempUnit(BME280::TempUnit_Celsius);
     BME280::PresUnit presUnit(BME280::PresUnit_Pa);
-    bme280.read(air_bme_pressure, air_bme_temperature, air_bme_humidity, tempUnit, presUnit);
-    co2_sensor.setAmbientPressure(air_bme_pressure);
+    bme280.read(air_bme_pressure_pa, air_bme_temperature, air_bme_humidity, tempUnit, presUnit);
+    air_bme_pressure_hg = air_bme_pressure_pa / 133.3f;
+
+    co2_sensor.setAmbientPressure(air_bme_pressure_pa);
 
     if (tmr2_first) {
       tmr2_first = false;
       for (uint8_t i = 0; i < RAIN_MEASURES; i++) {
-        rain_measures[i] = air_bme_pressure;
+        rain_measures[i] = air_bme_pressure_pa;
       }
     } else {
       for (uint8_t i = 0; i < (RAIN_MEASURES - 1); i++) {
         rain_measures[i] = rain_measures[i + 1];
       }
-      rain_measures[RAIN_MEASURES - 1] = air_bme_pressure;
+      rain_measures[RAIN_MEASURES - 1] = air_bme_pressure_pa;
     }
   }
 
@@ -315,34 +332,8 @@ void loop() {
     //Зажигаем светофор
     set_led_color();
 
-    //Выводим обновленные данные на OLED-экран
-    oled_values_output();
+    //Выводим обновленные данные на LCD-экран
+    lcd_values_output();
   }
 
-  //Таймаут для отключения OLED
-  if ((millis() - last_action >= OLED_TIMEOUT_MS) && oled_active) {
-    Serial.println("### Activity timeout. Set OLED off...");
-    oled.setPower(false);
-    oled_active = false;
-  }
-
-  //Кнопка отпущена
-  if (digitalRead(BUTTON_PIN) && button_pressed) {
-    button_pressed = false;
-    oled_values_output();
-  }
-
-  //Кнопка нажата
-  if (!digitalRead(BUTTON_PIN) && !button_pressed) {
-    button_pressed = true;
-    last_action = millis();
-    if (oled_active) {
-      oled_rain_output();
-    } else {
-      Serial.println("### Activity detected. Set OLED on...");
-      oled_active = true;
-      oled.setPower(true);
-      oled_values_output();
-    }
-  }
 }

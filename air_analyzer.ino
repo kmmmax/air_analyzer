@@ -87,6 +87,8 @@ bool red_banner_co2 = false;
 bool yellow_banner_pm2 = false;
 bool red_banner_pm2 = false;
 
+uint8_t uparrow[8]  = {0x4,0xe,0x15,0x4,0x4,0x4,0x4};
+uint8_t downarrow[8]  = {0x4,0x4,0x4,0x4,0x15,0xe,0x4};
 
 void setup() {
 
@@ -123,6 +125,8 @@ void setup() {
   //Инициализируем LCD-экран и выводим первую строчку
   lcd.init();
   lcd.backlight();
+  lcd.createChar(0, uparrow);
+  lcd.createChar(1, downarrow);
   lcd.clear();
   lcd.home();
   lcd.print("Device Loading:");

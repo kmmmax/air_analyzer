@@ -1,4 +1,4 @@
-int estimateRain() {
+uint8_t estimateRain() {
 
   uint32_t pressureSum = 0;
   for (uint8_t i = 0; i < RAIN_MEASURES; i++) {
@@ -44,5 +44,5 @@ int estimateRain() {
     combinedProb = 100.0f;
   }
 
-  return (int)(combinedProb + 0.5f);
+  return (uint8_t)(combinedProb + 0.5f);
 }

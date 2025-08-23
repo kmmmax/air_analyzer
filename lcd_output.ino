@@ -82,8 +82,11 @@ void lcd_values_output() {
   lcd.setCursor(3, 3);
   lcd.print(air_bme_pressure_hg);
   lcd.print("mm");
-  if (air_bme_pressure_hg < rain_measures[RAIN_MEASURES - 1]) {
-  }
+  if (rain_measures[RAIN_MEASURES - 1] < rain_measures[RAIN_MEASURES - 2]) {
+    lcd.write(1);
+  } else if (rain_measures[RAIN_MEASURES - 1] > rain_measures[RAIN_MEASURES - 2]) {
+    lcd.write(0);
+  } else {}
 
   lcd.setCursor(15, 3);
   lcd.print("     ");

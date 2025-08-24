@@ -53,10 +53,10 @@ void set_led_color() {
     red_banner_humidity = true;
   }
 
-  if (air_scd_c02 > CO2_GREEN_MAX) {
+  if (air_scd_co2 > CO2_GREEN_MAX) {
     yellow_banner_co2 = true;
   }
-  if (air_scd_c02 > CO2_YELLOW_MAX) {
+  if (air_scd_co2 > CO2_YELLOW_MAX) {
     red_banner_co2 = true;
   }
 

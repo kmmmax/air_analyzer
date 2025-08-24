@@ -18,7 +18,7 @@ long readVcc() {
   long result = (high << 8) | low;
 
   result = 1.080f * 1023 * 1000 / result;  // расчёт реального VCC
-  return result;                                 // возвращает VCC
+  return result;                           // возвращает VCC
 }
 
 

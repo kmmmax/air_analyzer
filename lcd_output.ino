@@ -93,8 +93,25 @@ void lcd_values_output() {
   lcd.setCursor(15, 3);
   lcd.print(F("     "));
   lcd.setCursor(15, 3);
-  lcd.print(estimateRain());
-  lcd.print(F("%"));
+  switch (weather_forecast) {
+    case 0:  // Без изменений
+      lcd.print(F("Curr"));
+      break;
+    case 1:  // Без осадков
+      lcd.print(F("No"));
+      break;
+    case 2:  // Низкая вероятность
+      lcd.print(F("Low"));
+      break;
+    case 3:  // Средняя вероятность
+      lcd.print(F("Mid"));
+      break;
+    case 4:  // Высокая вероятность
+      lcd.print(F("High"));
+      break;
+    default:
+      lcd.print(F("Curr"));
+  }
 
   return;
 }

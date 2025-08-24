@@ -24,7 +24,7 @@
 #define LCD_SIZE_X 20
 #define LCD_SIZE_Y 4
 
-#define TMR1_INTERVAL_MS 15000
+#define TMR1_INTERVAL_MS 30000
 #define TMR2_INTERVAL_MS 300000
 #define TMR3_INTERVAL_MS 1000
 
@@ -44,7 +44,8 @@
 #define RAIN_MEASURES 12
 #define STATION_ALT_METERS 125
 
-#define TEMPERATURE_OFFSET -2.5f
+#define TEMPERATURE_OFFSET 0.922f
+#define HUMIDITY_OFFSET 1.13f
 
 
 //Создаем объекты устройств
@@ -73,7 +74,7 @@ uint16_t air_pm2 = 0;
 float air_bme_temperature = 0;
 float air_bme_humidity = 0;
 float air_bme_pressure_pa = 0;
-uint16_t air_bme_pressure_hg = 0;
+uint16_t air_bme_pressure_mm = 0;
 
 uint32_t rain_measures[RAIN_MEASURES];
 
@@ -89,8 +90,12 @@ bool red_banner_co2 = false;
 bool yellow_banner_pm2 = false;
 bool red_banner_pm2 = false;
 
-uint8_t uparrow[8]  = {0x4,0xe,0x15,0x4,0x4,0x4,0x0};
-uint8_t downarrow[8]  = {0x0,0x4,0x4,0x4,0x15,0xe,0x4};
+uint8_t uparrow[8] = { 0x4, 0xe, 0x15, 0x4, 0x4, 0x4, 0x0 };
+uint8_t downarrow[8] = { 0x0, 0x4, 0x4, 0x4, 0x15, 0xe, 0x4 };
+
+const char okMessage[4] = "Ok!";
+const char alert[2] = "!";
+
 
 void setup() {
 
@@ -115,8 +120,8 @@ void setup() {
 
   //Стартуем последовательный порт обмена
   Serial.begin(SERIAL_PORT_SPEED);
-  Serial.println("###");
-  Serial.println("### Air Analyzer");
+  Serial.println(F("###"));
+  Serial.println(F("### Air Analyzer"));
 
   //Стартуем шину I2C со скоростью I2C_SPEED
   Wire.begin();
@@ -131,114 +136,106 @@ void setup() {
   lcd.createChar(1, downarrow);
   lcd.clear();
   lcd.home();
-  lcd.print("Device Loading:");
+  lcd.print(F("Device Loading:"));
   lcd.cursor_off();
   lcd.blink_on();
 
   //Подключаем модуль точного времени
   lcd.setCursor(0, 2);
-  lcd.print("                    ");
+  lcd.print(F("                    "));
   lcd.setCursor(1, 2);
-  lcd.print("RTC Watch: ");
-  Serial.print("### RTC Watch wakeUp ...");
+  lcd.print(F("RTC Watch: "));
+  Serial.print(F("### RTC Watch wakeUp ... "));
   rtc_watch.begin(&Wire);
   delay(100);
-  rtc_watch.gettime("d M Y | H:i");
-  Serial.print(" OK!");
-  lcd.print("Ok!");
+  rtc_watch.gettime();
+  Serial.println(okMessage);
+  lcd.print(okMessage);
   delay(1000);
 
   //Подключаем датчик CO2
   lcd.setCursor(0, 2);
-  lcd.print("                    ");
+  lcd.print(F("                    "));
   lcd.setCursor(1, 2);
-  lcd.print("CO2 Sensor: ");
-  Serial.print("### CO2 Sensor wakeUp ...");
+  lcd.print(F("CO2 Sensor: "));
+  Serial.print(F("### CO2 Sensor wakeUp ... "));
   co2_sensor.begin(Wire, SCD41_I2C_ADDR_62);
   delay(100);
   while (co2_sensor.wakeUp() != 0) {
     delay(1000);
-    Serial.print(".");
   }
-  Serial.println(" OK!");
+  Serial.println(okMessage);
 
-  Serial.print("### CO2 sensor stopPeriodicMeasurement ...");
+  Serial.print(F("### CO2 sensor stopPeriodicMeasurement ... "));
   delay(100);
   while (co2_sensor.stopPeriodicMeasurement() != 0) {
     delay(1000);
-    Serial.print(".");
   }
-  Serial.println(" OK!");
+  Serial.println(okMessage);
 
-  Serial.print("### CO2 sensor reInit ...");
+  Serial.print(F("### CO2 sensor reInit ... "));
   delay(100);
   while (co2_sensor.reinit() != 0) {
     delay(1000);
-    Serial.print(".");
   }
-  Serial.println(" OK!");
+  Serial.println(okMessage);
 
-  Serial.print("### CO2 sensor startPeriodicMeasurement ...");
+  Serial.print(F("### CO2 sensor startPeriodicMeasurement ... "));
   delay(100);
   while (co2_sensor.startPeriodicMeasurement() != 0) {
     delay(1000);
-    Serial.print(".");
   }
-  Serial.println(" OK!");
+  Serial.println(okMessage);
 
-  Serial.print("### CO2 sensor getDataReadyStatus ...");
+  Serial.print(F("### CO2 sensor getDataReadyStatus ... "));
   delay(100);
   while (co2_sensor.getDataReadyStatus(co2_dataReady) != 0) {
     delay(1000);
-    Serial.print(".");
   }
-  Serial.println(" OK!");
+  Serial.println(okMessage);
 
-  Serial.print("### CO2 sensor dataReady ...");
+  Serial.print(F("### CO2 sensor dataReady ... "));
   delay(100);
   while (!co2_dataReady) {
     delay(1000);
     co2_sensor.getDataReadyStatus(co2_dataReady);
-    Serial.print(".");
   }
-  Serial.println(" OK!");
-  lcd.print("Ok!");
+  Serial.println(okMessage);
+  lcd.print(okMessage);
   delay(1000);
 
   //Подключаем датчик AHT (температура и влажность)
   lcd.setCursor(0, 2);
-  lcd.print("                    ");
+  lcd.print(F("                    "));
   lcd.setCursor(1, 2);
-  lcd.print("AHT Sensor: ");
-  Serial.print("### AHT Sensor ...");
+  lcd.print(F("AHT Sensor: "));
+  Serial.print(F("### AHT Sensor ... "));
   delay(100);
   while (!aht10.begin()) {
     delay(1000);
-    Serial.print(".");
   }
-  Serial.println(" OK!");
-  lcd.print("Ok!");
+  Serial.println(okMessage);
+  lcd.print(okMessage);
   delay(1000);
 
   //Подключаем датчик атмосферного давления
   lcd.setCursor(0, 2);
-  lcd.print("                    ");
+  lcd.print(F("                    "));
   lcd.setCursor(1, 2);
-  lcd.print("BME Sensor: ");
-  Serial.print("### BME sensor wakeUp ...");
+  lcd.print(F("BME Sensor: "));
+  Serial.print(F("### BME sensor wakeUp ... "));
   delay(100);
   while (!bme280.begin()) {
     delay(1000);
-    Serial.print(".");
   }
-  Serial.println(" OK!");
-  lcd.print("Ok!");
+  Serial.println(okMessage);
+  lcd.print(okMessage);
   delay(1000);
 
   lcd.setCursor(0, 2);
-  lcd.print("                    ");
+  lcd.print(F("                    "));
   lcd.setCursor(1, 2);
-  lcd.print("Device ready!");
+  lcd.print(F("Device ready!"));
   lcd.cursor_off();
   lcd.blink_off();
 
@@ -282,7 +279,7 @@ void loop() {
     BME280::TempUnit tempUnit(BME280::TempUnit_Celsius);
     BME280::PresUnit presUnit(BME280::PresUnit_Pa);
     bme280.read(air_bme_pressure_pa, air_bme_temperature, air_bme_humidity, tempUnit, presUnit);
-    air_bme_pressure_hg = air_bme_pressure_pa / 133.3f;
+    air_bme_pressure_mm = air_bme_pressure_pa / 133.3f;
 
     co2_sensor.setAmbientPressure(air_bme_pressure_pa);
 
@@ -308,17 +305,18 @@ void loop() {
 
     //Получаем данные температуры и влажности и делаем поправку на погрешность датчика
     if (!aht10.getEvent(&air_aht_humidity, &air_aht_temperature)) {
-      Serial.println("### Wrong data from AHT sensor !!!");
+      Serial.println(F("### Wrong data from AHT sensor !!!"));
       air_aht_temperature.temperature = 0.0;
       air_aht_humidity.relative_humidity = 0.0;
     } else {
-      air_aht_temperature.temperature += TEMPERATURE_OFFSET;
+      air_aht_temperature.temperature *= TEMPERATURE_OFFSET;
+      air_aht_humidity.relative_humidity *= HUMIDITY_OFFSET;
     }
 
     //Получаем данные CO2
     co2_dataStatus = co2_sensor.getDataReadyStatus(co2_dataReady);
     if (co2_dataStatus != 0 or !co2_dataReady) {
-      Serial.println("### Wrong readyStatus from CO2 sensor !!!");
+      Serial.println(F("### Wrong readyStatus from CO2 sensor !!!"));
       air_scd_co2 = 8888;
       air_scd_temperature = 0;
       air_scd_humidity = 0;
@@ -326,7 +324,7 @@ void loop() {
       delay(100);
       co2_dataStatus = co2_sensor.readMeasurement(air_scd_co2, air_scd_temperature, air_scd_humidity);
       if (co2_dataStatus != 0) {
-        Serial.println("### Wrong data from CO2 sensor !!!");
+        Serial.println(F("### Wrong data from CO2 sensor !!!"));
         air_scd_co2 = 9999;
         air_scd_temperature = 0;
         air_scd_humidity = 0;

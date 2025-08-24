@@ -1,21 +1,21 @@
 void lcd_template_output() {
   lcd.setCursor(0, 1);
-  lcd.print("T:");
+  lcd.print(F("T:"));
 
   lcd.setCursor(10, 1);
-  lcd.print("Rh:");
+  lcd.print(F("Rh:"));
 
   lcd.setCursor(0, 2);
-  lcd.print("CO2:");
+  lcd.print(F("CO2:"));
 
   lcd.setCursor(10, 2);
-  lcd.print("Pm2:");
+  lcd.print(F("Pm2:"));
 
   lcd.setCursor(0, 3);
-  lcd.print("Hg:");
+  lcd.print(F("Hg:"));
 
   lcd.setCursor(10, 3);
-  lcd.print("Rain:");
+  lcd.print(F("Rain:"));
 
   return;
 }
@@ -43,56 +43,58 @@ void lcd_datetime_output() {
 void lcd_values_output() {
 
   lcd.setCursor(2, 1);
-  lcd.print("        ");
+  lcd.print(F("        "));
   lcd.setCursor(2, 1);
   lcd.print(air_aht_temperature.temperature, 1);
   lcd.print((char)223);
-  lcd.print("C");
+  lcd.print(F("C"));
   if (yellow_banner_temperature) {
-    lcd.print("!");
+    lcd.print(alert);
   }
 
   lcd.setCursor(13, 1);
-  lcd.print("       ");
+  lcd.print(F("       "));
   lcd.setCursor(13, 1);
   lcd.print(air_aht_humidity.relative_humidity, 1);
-  lcd.print("%");
+  lcd.print(F("%"));
   if (red_banner_humidity) {
-    lcd.print("!");
+    lcd.print(alert);
   }
 
   lcd.setCursor(4, 2);
-  lcd.print("      ");
+  lcd.print(F("      "));
   lcd.setCursor(4, 2);
   lcd.print(air_scd_co2);
   if (yellow_banner_co2 || red_banner_co2) {
-    lcd.print("!");
+    lcd.print(alert);
   }
 
   lcd.setCursor(14, 2);
-  lcd.print("      ");
+  lcd.print(F("      "));
   lcd.setCursor(14, 2);
   lcd.print(air_pm2);
   if (yellow_banner_pm2 || red_banner_pm2) {
-    lcd.print("!");
+    lcd.print(alert);
   }
 
   lcd.setCursor(3, 3);
-  lcd.print("       ");
+  lcd.print(F("       "));
   lcd.setCursor(3, 3);
-  lcd.print(air_bme_pressure_hg);
-  lcd.print("mm");
+  lcd.print(air_bme_pressure_mm);
+  lcd.print(F("mm"));
   if (rain_measures[RAIN_MEASURES - 1] < rain_measures[RAIN_MEASURES - 2]) {
     lcd.write(1);
   } else if (rain_measures[RAIN_MEASURES - 1] > rain_measures[RAIN_MEASURES - 2]) {
     lcd.write(0);
-  } else {}
+  } else {
+    lcd.print(F(" "));
+  }
 
   lcd.setCursor(15, 3);
-  lcd.print("     ");
+  lcd.print(F("     "));
   lcd.setCursor(15, 3);
   lcd.print(estimateRain());
-  lcd.print("%");
+  lcd.print(F("%"));
 
   return;
 }

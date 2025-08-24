@@ -8,44 +8,57 @@
 
 
 //Задаем макросы для удобства
+//Пины светофора
 #define RED_LED 2
 #define YELLOW_LED 3
 #define GREEN_LED 4
 
-#define BUTTON_PIN 9
-
+//Пины датчика Pm2.5
 #define PM2_LED_PIN A1
 #define PM2_AOUT_PIN A0
 
+//Пин кнопки
+#define BUTTON_PIN 9
+
+//Скорости шин
 #define SERIAL_PORT_SPEED 9600
 #define I2C_SPEED 1000
 
+//Данные LCD-экрана
 #define LCD_ADDRESS 0x27
 #define LCD_SIZE_X 20
 #define LCD_SIZE_Y 4
 
-#define TMR1_INTERVAL_MS 30000
-#define TMR2_INTERVAL_MS 300000
-#define TMR3_INTERVAL_MS 1000
+//Программные таймеры
+#define TMR1_INTERVAL_MS 30000   //Опрос датчиков
+#define TMR2_INTERVAL_MS 300000  //Измерение атмосферного давления
+#define TMR3_INTERVAL_MS 1000    //Опрос часов
 
-
+//Отсечки для температуры
 #define TEMP_GREEN_MIN 18
 #define TEMP_GREEN_MAX 30
 
+//Отсечки для влажности
 #define HUMIDITY_GREEN_MIN 30
 #define HUMIDITY_GREEN_MAX 60
 
+//Отсечки для СО2 концентрации
 #define CO2_GREEN_MAX 800
 #define CO2_YELLOW_MAX 1000
 
+//Отсечки для PM2.5 частиц
 #define PM2_GREEN_MAX 115
 #define PM2_YELLOW_MAX 150
 
+//Делаем 12 измерений каждые TMR2_INTERVAL_MS
 #define RAIN_MEASURES 12
-#define STATION_ALT_METERS 125
 
+//Поправочные коэффициенты для датчика AHT10
 #define TEMPERATURE_OFFSET 0.922f
 #define HUMIDITY_OFFSET 1.13f
+
+//Высота над уровнем моря (для вычисления давления по уровню моря)
+#define STATION_ALTITUDE_METERS 150
 
 
 //Создаем объекты устройств
@@ -77,6 +90,8 @@ float air_bme_pressure_pa = 0;
 uint16_t air_bme_pressure_mm = 0;
 
 uint32_t rain_measures[RAIN_MEASURES];
+
+uint8_t weather_forecast = 0;
 
 sensors_event_t air_aht_temperature;
 sensors_event_t air_aht_humidity;
@@ -179,6 +194,41 @@ void setup() {
     delay(1000);
   }
   Serial.println(okMessage);
+
+  if (digitalRead(BUTTON_PIN) == LOW) {  // Нажата кнопка
+
+    Serial.print(F("### CO2 sensor Reset ... "));
+    delay(100);
+    while (co2_sensor.performFactoryReset() != 0) {
+      delay(1000);
+    }
+    Serial.println(okMessage);
+
+    Serial.print(F("### CO2 sensor reInit ... "));
+    delay(100);
+    while (co2_sensor.reinit() != 0) {
+      delay(1000);
+    }
+    Serial.println(okMessage);
+
+    Serial.print(F("### CO2 sensor Calibration ... "));
+    delay(100);
+    while (co2_sensor.setAutomaticSelfCalibrationEnabled(1) != 0) {
+      delay(1000);
+    }
+    Serial.println(okMessage);
+
+    lcd.print(F("Reset!"));
+    lcd.setCursor(1, 3);
+    lcd.print(F("Reboot now!"));
+    delay(2000);
+    while (true) {
+      lcd.noBacklight();
+      delay(500);
+      lcd.backlight();
+      delay(500);
+    }
+  }
 
   Serial.print(F("### CO2 sensor startPeriodicMeasurement ... "));
   delay(100);
@@ -294,6 +344,8 @@ void loop() {
       }
       rain_measures[RAIN_MEASURES - 1] = air_bme_pressure_pa;
     }
+
+    weather_forecast = estimateRain();
   }
 
   //Программный таймер для обновления данных сенсоров

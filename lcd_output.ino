@@ -57,7 +57,7 @@ void lcd_values_output() {
   lcd.setCursor(13, 1);
   lcd.print(air_aht_humidity.relative_humidity, 1);
   lcd.print(F("%"));
-  if (red_banner_humidity) {
+  if (yellow_banner_humidity) {
     lcd.print(alert);
   }
 

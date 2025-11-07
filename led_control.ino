@@ -37,7 +37,7 @@ void set_led_color() {
 
   yellow_banner_temperature = false;
 
-  red_banner_humidity = false;
+  yellow_banner_humidity = false;
 
   yellow_banner_co2 = false;
   red_banner_co2 = false;
@@ -50,7 +50,7 @@ void set_led_color() {
   }
 
   if (air_aht_humidity.relative_humidity < HUMIDITY_GREEN_MIN or air_aht_humidity.relative_humidity > HUMIDITY_GREEN_MAX) {
-    red_banner_humidity = true;
+    yellow_banner_humidity = true;
   }
 
   if (air_scd_co2 > CO2_GREEN_MAX) {
@@ -67,12 +67,12 @@ void set_led_color() {
     red_banner_pm2 = true;
   }
 
-  if (red_banner_humidity || red_banner_co2 || red_banner_pm2) {
+  if (red_banner_co2 || red_banner_pm2) {
     red_led_on();
     return;
   }
 
-  if (yellow_banner_temperature || yellow_banner_co2 || yellow_banner_pm2) {
+  if (yellow_banner_temperature || yellow_banner_humidity || yellow_banner_co2 || yellow_banner_pm2) {
     yellow_led_on();
     return;
   }

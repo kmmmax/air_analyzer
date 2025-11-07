@@ -55,7 +55,7 @@
 
 //Поправочные коэффициенты для датчика AHT10
 #define TEMPERATURE_OFFSET 0.922f
-#define HUMIDITY_OFFSET 1.13f
+#define HUMIDITY_OFFSET 1.0f
 
 //Высота над уровнем моря (для вычисления давления по уровню моря)
 #define STATION_ALTITUDE_METERS 150
@@ -97,7 +97,7 @@ sensors_event_t air_aht_temperature;
 sensors_event_t air_aht_humidity;
 
 bool yellow_banner_temperature = false;
-bool red_banner_humidity = false;
+bool yellow_banner_humidity = false;
 
 bool yellow_banner_co2 = false;
 bool red_banner_co2 = false;

@@ -261,9 +261,10 @@ void setup() {
   lcd.print(F("AHT Sensor: "));
   Serial.print(F("### AHT Sensor ... "));
   delay(100);
+  aht10.begin();
   while (!aht10.begin()) {
     delay(1000);
-  }
+  } 
   Serial.println(okMessage);
   lcd.print(okMessage);
   delay(1000);
